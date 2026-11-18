@@ -86,7 +86,7 @@ input,textarea{font-family:inherit;font-size:15px;color:var(--ink);outline:none}
 .empty-note{padding:30px 16px;text-align:center;color:var(--ink-faint);font-size:13.5px}
 .dots-deco{position:absolute;width:96px;height:64px;background-image:radial-gradient(circle,#D6D6DA 1.6px,transparent 1.7px);background-size:15px 15px;opacity:.8;pointer-events:none}
 .ring-deco{position:absolute;border:1.6px solid #DBDBDF;border-radius:50%;pointer-events:none}
-.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:rgba(var(--wm-rgb),.92);color:#fff;padding:9px 18px;border-radius:10px;font-size:13.5px;z-index:99;opacity:0;transition:opacity .25s;pointer-events:none;max-width:84vw;text-align:center}
+.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:var(--glass-bg,var(--card));color:var(--ink);border:1px solid var(--glass-border,var(--line));backdrop-filter:blur(var(--glass,0px)) saturate(1.2);-webkit-backdrop-filter:blur(var(--glass,0px)) saturate(1.2);box-shadow:0 12px 30px -12px rgba(30,32,38,.35);padding:9px 18px;border-radius:10px;font-size:13.5px;z-index:99;opacity:0;transition:opacity .25s;pointer-events:none;max-width:84vw;text-align:center}
 .toast.show{opacity:1}
 
 /* ---------- 登录 ---------- */
@@ -337,6 +337,7 @@ body.kb-open #tabbar{margin-bottom:calc(10px + var(--sab, env(safe-area-inset-bo
    紧贴屏幕底部，不占系统栏、也不悬空。 */
 #page-chat .chat-bar{ margin-left:14px; margin-right:14px; margin-bottom: calc(12px + max(var(--sab, 0px), env(safe-area-inset-bottom, 0px))); }
 body.kb-open #page-chat .chat-bar{ margin-bottom:10px; }
+body.v32.kb-open #page-chat .chat-bar{ margin-bottom:12px; }
 #msgMenu{ bottom: calc(88px + max(var(--sab, 0px), env(safe-area-inset-bottom, 0px))); }
 #page-chat.has-bg .msg.other .bubble{ background: linear-gradient(var(--bubble-other), var(--bubble-other)), var(--surface); }
 #page-chat.has-bg .msg.me .bubble{ background: linear-gradient(var(--bubble-me), var(--bubble-me)), var(--surface); }
@@ -1328,6 +1329,17 @@ async function api(path, opts){
   return data;
 }
 
+/* 网络请求重试：跨境线路偶尔抖一下就断，只在网络层失败时重试，不改业务逻辑 */
+async function fetchRetry(url, opts, times){
+  const n = times || 3;
+  let lastErr = null;
+  for (let i = 0; i < n; i++){
+    try { return await fetch(url, opts); }
+    catch (e){ lastErr = e; if (i < n - 1) await new Promise(res => setTimeout(res, 900 * (i + 1))); }
+  }
+  throw lastErr;
+}
+
 /* ================= 状态 ================= */
 let agentsCache = [];
 let roomsCache = [];
@@ -1346,6 +1358,7 @@ const AVA_SHADES = ['var(--ava-dark)', 'var(--ava-mid)', 'var(--ava-light)'];
 function avaColor(seed){ let h = 0; const s = String(seed); for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return AVA_SHADES[h % 3]; }
 function agentById(id){ return agentsCache.find(a => a.id === Number(id)) || null; }
 function senderName(m){
+  if (m.sender_name) return m.sender_name;
   if (m.sender_type === 'agent'){
     const a = agentById(m.sender_id);
     return a ? a.name : (memberNames['agent-' + m.sender_id] || ('AI ' + m.sender_id));
@@ -1555,6 +1568,16 @@ lockAppH();
    输入框天然落在键盘正上方，键盘收起自动回最底，不再量键盘高度。
    旧壳与浏览器保持老行为：appH 锁定 + --kb 抬升。 */
 const RESIZE_MODE = (() => { const m = navigator.userAgent.match(/GangZhongZhiNaoApp\/(\d+)/); return !!(m && parseInt(m[1], 10) >= 18); })();
+/* v3.2 壳（versionCode>=23）：安全区改由壳子原生约束——WebView 内容区被
+   系统 insets 直接推到状态栏与导航栏之间，网页不再量系统栏：--sat/--sab
+   恒为 0，键盘靠 adjustResize 系统缩放，网页的 --kb 补偿整体退役。
+   旧壳（<23）与浏览器完全走老路，互不影响（2026-11-19 通用适配方案）。 */
+const V32_MODE = (() => { const m = navigator.userAgent.match(/GangZhongZhiNaoApp\/(\d+)/); return !!(m && parseInt(m[1], 10) >= 23); })();
+if (V32_MODE){
+  if (document.body) document.body.classList.add('v32');
+  document.documentElement.style.setProperty('--sat', '0px');
+  document.documentElement.style.setProperty('--sab', '0px');
+}
 let lastDiag = '';
 function diagKb(focused){
   try {
@@ -1615,6 +1638,13 @@ function applyKb(){
   const chatOn = document.getElementById('page-chat') && document.getElementById('page-chat').classList.contains('on');
   const tag0 = document.activeElement && document.activeElement.tagName;
   const focused0 = tag0 === 'INPUT' || tag0 === 'TEXTAREA';
+  if (V32_MODE){
+    /* 新壳：窗口被系统压到键盘上沿，输入栏天然贴键盘，不做任何抬升 */
+    document.documentElement.style.setProperty('--kb', '0px');
+    window.__kbV = 0;
+    document.body.classList.toggle('kb-open', !!(focused0 && (appH - window.innerHeight) > 80));
+    return;
+  }
   const eff = Math.max(kbNative, kbVV);
   const shrunk = Math.max(0, appH - window.innerHeight);
   const residual = shrunk > 80 ? Math.max(0, eff - shrunk) : eff;
@@ -1644,12 +1674,14 @@ function applyKb(){
   }
 }
 function gzSetKb(px){
+  if (V32_MODE) return;
   // 壳子报的是未缩放单位；页面 zoom 后 CSS px 变大，键盘高度要除以缩放比才落得准
   kbNative = Math.round((px || 0) * 100 / fontScaleVal());
   applyKb();
 }
 window.__gzSetKb = gzSetKb;
 window.__gzSetInsets = function(topCss, botCss){
+  if (V32_MODE) return;
   const z = fontScaleVal() / 100;
   document.documentElement.style.setProperty('--sat', Math.round((topCss || 0) / z) + 'px');
   document.documentElement.style.setProperty('--sab', Math.round((botCss || 0) / z) + 'px');
@@ -2268,6 +2300,20 @@ let cropState = null;
 function openCropper(file, onDone, opts){
   const url = URL.createObjectURL(file);
   const img = $('#cropImg');
+  img.onerror = async () => {
+    URL.revokeObjectURL(url);
+    if (opts && opts.converted){ toast('这张图片打不开，换一张试试'); return; }
+    /* 本地解不开（HEIC 等格式）：发服务器转成 JPEG 再回裁剪器，裁剪流程不变 */
+    toast('正在转换图片…');
+    try {
+      const fd = new FormData();
+      fd.append('file', file, 'img');
+      const r = await fetchRetry('/me/image-convert', { method: 'POST', headers: { 'Authorization': 'Bearer ' + store.token }, body: fd });
+      if (!r.ok) throw new Error('convert failed');
+      const blob = await r.blob();
+      openCropper(blob, onDone, Object.assign({}, opts, { converted: true }));
+    } catch (e){ toast('这张图片打不开，换一张试试'); }
+  };
   img.onload = () => {
     $('#cropper').classList.add('on');
     requestAnimationFrame(() => {
@@ -2337,7 +2383,7 @@ $('#cropOk').addEventListener('click', () => {
   const s = st.base * st.zoom;
   ctx.drawImage(img, st.x * k, st.y * k, img.naturalWidth * s * k, img.naturalHeight * s * k);
   const done = st.onDone;
-  canvas.toBlob(b => { closeCropper(); if (b) done(b); }, 'image/jpeg', 0.86);
+  canvas.toBlob(b => { closeCropper(); if (b) done(b); else toast('图片处理失败，请重试'); }, 'image/jpeg', 0.86);
 });
 
 /* ---------- 聊天背景 ---------- */
@@ -3365,7 +3411,7 @@ $('#setUpdate').addEventListener('click', async () => {
     if (window.GzBridge){
       // 本体更新只认服务器上的最新版安装包：一次直达最新，绝不逐版递增，
       // 也绝不在没查清本体版本时假报「已是最新」
-      const v = await (await fetch('/app-version.json', { cache: 'no-store' })).json();
+      const v = await (await fetchRetry('/app-version.json', { cache: 'no-store' })).json();
       const mine = window.GzBridge.versionCode ? window.GzBridge.versionCode() : 0;
       if (v && v.version_code && v.version_code > mine){
         st.textContent = '正在下载最新版…';
@@ -3376,7 +3422,7 @@ $('#setUpdate').addEventListener('click', async () => {
       }
       if (v && v.version_code){ st.textContent = '已是最新版'; toast('已是最新版'); return; }
     }
-    const r = await fetch('/build-id', { cache: 'no-store' });
+    const r = await fetchRetry('/build-id', { cache: 'no-store' });
     const j = await r.json();
     if (j.build && BUILD_ID && j.build !== BUILD_ID){
       st.textContent = '正在同步新版…';
@@ -3656,11 +3702,15 @@ $('#annPublish').addEventListener('click', async () => {
   } catch (e){ toast(e.message || '发布失败'); }
 });
 let currentAnnounceId = null;
+function localAnnAckedId(){
+  try { return Number(lsAcctGet('gz_ann_ack') || 0) || 0; } catch (e){ return 0; }
+}
 async function checkAnnouncement(){
   try {
     const r = await api('/announcements/latest');
     const a = r.announcement;
     if (!a || a.acked) return;
+    if (a.id <= localAnnAckedId()) return; /* 本机已确认过：服务端回执丢了也不再弹 */
     currentAnnounceId = a.id;
     $('#announceModalText').textContent = a.content;
     $('#announceModalTime').textContent = fmtDayTime(a.created_at);
@@ -3674,8 +3724,15 @@ $('#announceModalOk').addEventListener('click', async () => {
   m.classList.add('hidden');
   m.style.display = 'none';
   if (currentAnnounceId){
-    try { await api('/announcements/' + currentAnnounceId + '/ack', { method: 'POST', body: {} }); } catch (e){}
+    const aid = currentAnnounceId;
     currentAnnounceId = null;
+    /* 先落本机记录（按账号）：点过确认，这台设备永不再弹这条 */
+    try { lsAcctSet('gz_ann_ack', String(aid)); } catch (e){}
+    /* 服务端回执带重试，丢一次不至于下次重弹 */
+    for (let i = 0; i < 3; i++){
+      try { await api('/announcements/' + aid + '/ack', { method: 'POST', body: {} }); break; }
+      catch (e){ if (i < 2) await new Promise(res => setTimeout(res, 800 * (i + 1))); }
+    }
   }
 });
 async function renderAdmin(){

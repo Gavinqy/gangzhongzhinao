@@ -22,12 +22,20 @@ import uuid
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 DB_PATH = os.environ.get("HUB_DB", os.path.join(os.path.dirname(__file__), "hub.db"))
 ph = PasswordHasher()
 app = FastAPI(title="缸中之脑 Hub", version="0.1.0")
+
+# HEIC/HEIF 解码（部分手机相机默认格式）：装了 pillow-heif 就全局注册，
+# 背景、头像、聊天图片的 PIL 处理都跟着能读；没装也不影响其他格式。
+try:
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+except Exception:
+    pass
 
 
 def now_iso():
@@ -436,6 +444,31 @@ def msg_dict(r: sqlite3.Row) -> dict:
     return d
 
 
+def attach_sender_names(conn, msgs):
+    """给消息批量补 sender_name（发送者当前显示名）。
+    2026-11-19：客户端本地只有打开过的房间成员名，列表预览里没打开过的
+    房间会把发送者显示成「用户 N」。名字由服务器随消息下发，处处一致。"""
+    uids = {m["sender_id"] for m in msgs if m.get("sender_type") == "user"}
+    aids = {m["sender_id"] for m in msgs if m.get("sender_type") == "agent"}
+    names = {}
+    if uids:
+        q = ",".join("?" * len(uids))
+        for r in conn.execute(
+                f"SELECT id, nickname, username FROM users WHERE id IN ({q})",
+                tuple(uids)):
+            names[("user", r["id"])] = r["nickname"] or r["username"]
+    if aids:
+        q = ",".join("?" * len(aids))
+        for r in conn.execute(
+                f"SELECT id, name FROM agents WHERE id IN ({q})", tuple(aids)):
+            names[("agent", r["id"])] = r["name"]
+    for m in msgs:
+        n = names.get((m.get("sender_type"), m.get("sender_id")))
+        if n:
+            m["sender_name"] = n
+    return msgs
+
+
 def attach_file_info(conn, msg: dict, user_id=None) -> dict:
     """媒体消息（content_type=image/file）的 content 存的是 room_files id，
     给客户端补上文件名、大小，以及（给了 user_id 时）该用户专属的签名链接。"""
@@ -536,7 +569,7 @@ def insert_message(conn, room_id, sender_type, sender_id, owner_user_id,
         (room_id, sender_type, sender_id, owner_user_id, content, content_type,
          reply_to, json.dumps(mentions or []), event_id, now_iso()))
     row = conn.execute("SELECT * FROM messages WHERE id=?", (cur.lastrowid,)).fetchone()
-    return msg_dict(row)
+    return attach_sender_names(conn, [msg_dict(row)])[0]
 
 
 def agent_send_guard(conn, room, agent_id):
@@ -1128,6 +1161,30 @@ async def upload_avatar(req: Request, file: UploadFile = File(...)):
             except OSError:
                 pass
     return {"avatar_url": sign_avatar_url(user["id"])}
+
+
+@app.post("/me/image-convert")
+async def convert_image(req: Request, file: UploadFile = File(...)):
+    """把手机本地解不开的图片（HEIC 等）转成 JPEG 返回，供裁剪器继续用。
+    只转码不落盘，裁剪与最终上传仍走原流程。"""
+    auth_user(req)
+    data = await file.read()
+    if len(data) > 15 * 1024 * 1024:
+        raise HTTPException(413, "图片超过 15MB")
+    try:
+        from PIL import Image
+        img = Image.open(io.BytesIO(data))
+        img.load()
+        if img.mode not in ("RGB", "L"):
+            img = img.convert("RGB")
+        img.thumbnail((2048, 2048))
+        out = io.BytesIO()
+        img.save(out, "JPEG", quality=88)
+        return Response(content=out.getvalue(), media_type="image/jpeg")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(400, "这张图片打不开")
 
 
 @app.post("/me/background")
@@ -1832,7 +1889,8 @@ def room_messages(room_id: int, req: Request, after_id: int = 0, limit: int = 10
         rows = conn.execute(
             "SELECT * FROM messages WHERE room_id=? AND id>? ORDER BY id ASC LIMIT ?",
             (room_id, after_id, limit)).fetchall()
-        return {"messages": [attach_file_info(conn, msg_dict(r), user["id"]) for r in rows]}
+        msgs = [attach_file_info(conn, msg_dict(r), user["id"]) for r in rows]
+        return {"messages": attach_sender_names(conn, msgs)}
 
 
 # ---------------- 相册 REST（仅用户；MCP 无相册接口） ----------------
@@ -2148,7 +2206,8 @@ def list_favorites(room_id: int, req: Request):
             "WHERE f.user_id=? AND f.room_id=? ORDER BY f.created_at DESC",
             (user["id"], room_id)).fetchall()
         fav_ids = {r["id"] for r in rows}
-        return {"messages": [attach_file_info(conn, msg_dict(r), user["id"]) for r in rows],
+        msgs = [attach_file_info(conn, msg_dict(r), user["id"]) for r in rows]
+        return {"messages": attach_sender_names(conn, msgs),
                 "favorite_ids": list(fav_ids)}
 
 
@@ -2450,9 +2509,9 @@ async def mcp_endpoint(req: Request):
     return await _mcp_dispatch(agent, body)
 
 
-# --- GPT 探针入口（2026-11-18 项目选定的轻量方案）---
+# --- GPT 探针入口（2026-11-18 项目定版的轻量方案）---
 # ChatGPT 官端添加自定义 MCP 时认证只有 OAuth / 无认证，没有填 Bearer Token 的
-# 地方。故给某个 Agent 单开一条带密钥路径的入口：密钥在 URL 路径里，ChatGPT 侧选
+# 地方。故给 Aster 单开一条带密钥路径的入口：密钥在 URL 路径里，ChatGPT 侧选
 # 「无认证」即可。密钥与 agent 的对应关系只存服务端文件 .gpt_probe（JSON：
 # {"secret": "...", "agent_id": N}，权限 600），密钥不是 agent token 本身，
 # 泄露/停用时只换这个文件即可，不必轮换 agent token。文件不存在时入口 404。
