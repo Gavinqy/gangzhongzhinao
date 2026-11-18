@@ -136,16 +136,16 @@ input,textarea{font-family:inherit;font-size:15px;color:var(--ink);outline:none}
 .bubble .fc-size{font-size:11px;opacity:.65}
 .bubble .reply-quote .rq-name{font-weight:600}
 .msg.flash .bubble{outline:2px solid var(--accent);outline-offset:2px}
-#replyBar{display:flex;align-items:center;gap:10px;margin:0 14px 6px;padding:8px 8px 8px 14px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 24px -16px rgba(30,32,38,.4);transform:translateY(calc(-1 * var(--kb,0px)));transition:transform .16s ease-out;position:relative;z-index:1}
+#replyBar{display:flex;align-items:center;gap:10px;margin:0 14px 6px;padding:8px 8px 8px 14px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 24px -16px rgba(30,32,38,.4);position:relative;z-index:1}
 #replyBar.hidden{display:none}
 .msg.other .bubble{background:var(--bubble-other);color:var(--bub-other-tx);border-color:var(--bub-other-line,transparent);box-shadow:0 7px 18px -7px var(--bubble-other-shadow,rgba(30,32,38,.25))}
 .msg.other .bubble::after{content:"";position:absolute;left:-5px;bottom:11px;width:10px;height:10px;background:var(--bubble-other-solid,transparent);clip-path:polygon(6% 50%,52% 6%,52% 94%)}
 .msg.me{justify-content:flex-end}
 .msg.me .bubble{background:var(--bubble-me);color:var(--bub-me-tx);border-color:var(--bub-me-line,transparent);box-shadow:0 7px 18px -7px var(--bubble-me-shadow,rgba(30,32,38,.25))}
 .msg.me .bubble::after{content:"";position:absolute;right:-5px;bottom:11px;width:10px;height:10px;background:var(--bubble-me-solid,transparent);clip-path:polygon(94% 50%,48% 6%,48% 94%)}
-.chat-bar{display:flex;align-items:flex-end;flex:none;gap:6px;padding:7px 8px;background:var(--bg-soft);border:1px solid var(--line);border-radius:26px;margin:0 14px calc(10px + var(--sab, env(safe-area-inset-bottom, 0px)));box-shadow:0 14px 30px -18px rgba(30,32,38,.45);transform:translateY(calc(-1 * var(--kb,0px)));transition:transform .16s ease-out}
-body.kb-open #page-chat .chat-bar{margin-bottom:10px}
-#chatPanel{transform:translateY(calc(-1 * var(--kb,0px)));transition:transform .16s ease-out;flex:none}
+.chat-bar{display:flex;align-items:flex-end;flex:none;gap:6px;padding:7px 8px;background:var(--bg-soft);border:1px solid var(--line);border-radius:26px;margin:0 14px max(46px, calc(10px + var(--sab, env(safe-area-inset-bottom, 0px))));box-shadow:0 14px 30px -18px rgba(30,32,38,.45)}
+body.kb-open #page-chat .chat-bar, body.kb-open #tabbar{margin-bottom:10px}
+#chatPanel{flex:none}
 #announceBar{flex:none}
 .plus-btn{width:34px;height:34px;flex:none;border-radius:50%;border:1.6px solid #C9CBCF;background:#fff;font-size:19px;color:#55575E;display:flex;align-items:center;justify-content:center}
 .chat-input{flex:1;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:9px 14px;font-size:13px;resize:none;line-height:1.45;max-height:118px;overflow-y:auto}
@@ -288,7 +288,7 @@ label.bswatch input[type=color]{position:absolute;inset:-8px;width:80px;height:8
 .link-like{color:var(--accent);font-size:14px}
 
 /* ---------- 底部导航 ---------- */
-#tabbar{display:flex;background:rgba(246,246,247,.94);border:1px solid var(--line);border-radius:28px;margin:0 12px calc(10px + var(--sab, env(safe-area-inset-bottom, 0px)));padding:7px 6px;box-shadow:0 14px 30px -18px rgba(30,32,38,.45);backdrop-filter:blur(8px)}
+#tabbar{display:flex;background:rgba(246,246,247,.94);border:1px solid var(--line);border-radius:28px;margin:0 12px max(46px, calc(10px + var(--sab, env(safe-area-inset-bottom, 0px))));padding:7px 6px;box-shadow:0 14px 30px -18px rgba(30,32,38,.45);backdrop-filter:blur(8px)}
 .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--z-tab,#9A9CA2);font-size:10.5px;cursor:pointer;padding:2px 0}
 .tab svg{stroke:var(--z-tab,#9A9CA2)}
 .tab.on{color:#26282D}
@@ -296,12 +296,10 @@ label.bswatch input[type=color]{position:absolute;inset:-8px;width:80px;height:8
 .tab .nav-dot{display:none}
 
 
-/* ===== 2026-11-18 晚批：输入栏统一式 + 键盘态留白 ===== */
+/* ===== 2026-11-18 晚批：输入栏统一式 ===== */
 #page-chat .chat-bar .plus-btn{width:30px;height:30px;border:none;background:transparent;font-size:23px;color:var(--ink-sub)}
 #page-chat .chat-bar .chat-input{background:transparent;border:none;padding:9px 2px;font-size:14px}
 #page-chat .chat-bar .send-btn{width:33px;height:33px;font-size:16px}
-body.kb-open .chat-bar{margin-bottom:10px}
-body.kb-open #tabbar{margin-bottom:calc(10px + var(--sab, env(safe-area-inset-bottom, 0px)))}
 
 /* ===== 2026-11-18 简介页（详略得当）+ 聊天可读性 + 边缘留白 ===== */
 #page-agent-profile #apBody{ padding:6px 14px 34px; display:flex; flex-direction:column; gap:14px; }
@@ -331,13 +329,6 @@ body.kb-open #tabbar{margin-bottom:calc(10px + var(--sab, env(safe-area-inset-bo
 .pf-save{ border:none; border-radius:999px; padding:13px; font-size:15px; font-weight:700; background:var(--accent); color:#fff; cursor:pointer; font-family:inherit; }
 .pf-cancel{ border:1px solid rgba(128,128,128,.4); border-radius:999px; padding:12px; font-size:14.5px; background:transparent; color:inherit; cursor:pointer; font-family:inherit; }
 .topbar{ margin-top:8px; }
-/* 2026-11-18 21:07 批：底栏贴底。旧写法给相对定位的 #tabbar 加 bottom 偏移，
-   等于在 margin 之外又把它整条往上推了 16px+手势区高度，视觉上悬到半空、
-   下面空出一大截。底栏只靠 margin-bottom 留白：手势/按键区高度 + 10px，
-   紧贴屏幕底部，不占系统栏、也不悬空。 */
-#page-chat .chat-bar{ margin-left:14px; margin-right:14px; margin-bottom: calc(12px + max(var(--sab, 0px), env(safe-area-inset-bottom, 0px))); }
-body.kb-open #page-chat .chat-bar{ margin-bottom:10px; }
-body.v32.kb-open #page-chat .chat-bar{ margin-bottom:12px; }
 #msgMenu{ bottom: calc(88px + max(var(--sab, 0px), env(safe-area-inset-bottom, 0px))); }
 #page-chat.has-bg .msg.other .bubble{ background: linear-gradient(var(--bubble-other), var(--bubble-other)), var(--surface); }
 #page-chat.has-bg .msg.me .bubble{ background: linear-gradient(var(--bubble-me), var(--bubble-me)), var(--surface); }
@@ -1278,7 +1269,8 @@ function renderThemeGrid(){
 function applyAccent(){ if (imgPal) return; const a = lsAcctGet('gz_accent') || resolveTheme(store.theme).accent; document.documentElement.style.setProperty('--accent', a); }
 /* 全局字号：界面字号是 px 写死的，靠根元素 zoom 等比缩放实现（字与间距一起缩放，
    布局不会散）。gz_font_scale 存百分比，100 = 当前大小，范围 85–125。
-   键盘高度补偿：壳子报的键盘高度是未缩放单位，applyKb 前在 gzSetKb 里除以缩放比。 */
+   zoom 一变，壳子报的 insets 要按新 zoom 重算一次（applyInsets，全站唯一的
+   一处单位换算），所以 applyFontScale 末尾调它。 */
 function fontScaleVal(){ const v = parseInt(lsAcctGet('gz_font_scale') || '100', 10); return isNaN(v) ? 100 : Math.min(125, Math.max(85, v)); }
 function applyFontScale(){
   const v = fontScaleVal();
@@ -1287,19 +1279,19 @@ function applyFontScale(){
   if (s) s.value = v;
   if (t) t.textContent = v + '%';
   try { appH = window.innerHeight; syncDispH(); } catch (e) {}
-  try { applyKb(); } catch (e) {}
+  try { applyInsets(); } catch (e) {}
 }
 applyFontScale();
 applyTheme(store.theme);
 applyAccent();
 
-const POINTER_TXT = ''; // 可选：你自己的「地址指针」文件 URL（纯文本，内容为服务器根地址）。留空则不启用地址自动跟随。
+const POINTER_TXT = 'https://raw.githubusercontent.com/Gavinqy/-gangzhongzhinao-addr-/main/addr.txt';
 async function tryRelocate(){
   try {
     let base = '';
     try { if (window.GzBridge && GzBridge.currentBase) base = GzBridge.currentBase() || ''; } catch (e) {}
     if (!base){
-      const t = POINTER_TXT ? await fetch(POINTER_TXT + '?r=' + Date.now()).then(x => x.text()).catch(() => '') : '';
+      const t = await fetch(POINTER_TXT + '?r=' + Date.now()).then(x => x.text()).catch(() => '');
       base = (t || '').trim();
     }
     if (base && /^https?:\/\//.test(base) && base !== location.origin){
@@ -1558,26 +1550,30 @@ async function checkBuild(){
 checkBuild();
 document.addEventListener('visibilitychange', () => { if (!document.hidden){ checkBuild(); if (store.token) refreshMe().catch(() => {}); } });
 
-/* ---------- 键盘：锁定应用高度，键盘只抬起输入栏，界面本身不跳 ---------- */
+/* ---------- 适配：单一路径（2026-11-19 项目定版：错的先删、不按人头修） ----------
+   壳子只报数、网页只用数，中间不许再有换算和分支：
+   - 壳子把系统直给的 stable insets 按屏幕密度换成 CSS px，经 __gzSetInsets
+     报来，网页原值写进 --sat/--sab 给自己留白（不除字号缩放、不分版本）。
+   - 键盘：页面高度的收缩量取两路之大——(1) 可见高度的收缩，可见高度 =
+     min(innerHeight, visualViewport.height)（然然那类手机靠这路）；(2) 壳子
+     报的键盘高度（本机两个网页高度都不动、只有原生数值在动，靠这路）。
+     两路的单位换算都收在同一处（除以字号 zoom），公式只有一个、不分机型；
+     输入栏在页面底部，高度一缩它就贴到键盘上方。
+   - 键盘打开时窗口底边就是键盘顶边，手势区已被键盘盖住，底部留白统一
+     收回 10px（CSS 里 body.kb-open 一条规则管全部底栏）。
+   - 底部间距另有全员同一下限 46px：系统手势条（底部那颗药丸）占屏幕底部
+     约 32px，手势区报得比这还小的手机（实测有 15px 的）底栏会被它压住、
+     黑条透过玻璃显出来；下限同时保证底栏在任何手机上都是悬浮的（然然
+     2026-11-19 反馈希望底部栏悬浮）；只抬小手势区的手机，大手势区不变。
+   唯一保留的版本判断：壳 21 与 23 自己给 WebView 加过边距，它们报的
+   insets 已经落在边距里，网页再用就会重复留白，故对这两代壳 insets
+   按 0 用；这两代壳退场后这一行判断随之删除。 */
 let appH = window.innerHeight;
 let dispH = appH;
 function lockAppH(){ document.documentElement.style.setProperty('--app-h', dispH + 'px'); }
 lockAppH();
-/* v2.7 壳（versionCode>=18）起改走系统缩放：窗口是 adjustResize，键盘弹出时
-   系统直接把窗口压到键盘上沿，innerHeight 就是可见高度——页面高度跟随即可，
-   输入框天然落在键盘正上方，键盘收起自动回最底，不再量键盘高度。
-   旧壳与浏览器保持老行为：appH 锁定 + --kb 抬升。 */
-const RESIZE_MODE = (() => { const m = navigator.userAgent.match(/GangZhongZhiNaoApp\/(\d+)/); return !!(m && parseInt(m[1], 10) >= 18); })();
-/* v3.2 壳（versionCode>=23）：安全区改由壳子原生约束——WebView 内容区被
-   系统 insets 直接推到状态栏与导航栏之间，网页不再量系统栏：--sat/--sab
-   恒为 0，键盘靠 adjustResize 系统缩放，网页的 --kb 补偿整体退役。
-   旧壳（<23）与浏览器完全走老路，互不影响（2026-11-19 通用适配方案）。 */
-const V32_MODE = (() => { const m = navigator.userAgent.match(/GangZhongZhiNaoApp\/(\d+)/); return !!(m && parseInt(m[1], 10) >= 23); })();
-if (V32_MODE){
-  if (document.body) document.body.classList.add('v32');
-  document.documentElement.style.setProperty('--sat', '0px');
-  document.documentElement.style.setProperty('--sab', '0px');
-}
+const SHELL_VER = (() => { const m = navigator.userAgent.match(/GangZhongZhiNaoApp\/(\d+)/); return m ? parseInt(m[1], 10) : 0; })();
+const SHELL_SELF_MARGINS = (SHELL_VER === 21 || SHELL_VER === 23);
 let lastDiag = '';
 function diagKb(focused){
   try {
@@ -1585,24 +1581,30 @@ function diagKb(focused){
     const vv = window.visualViewport;
     const cs = getComputedStyle(document.documentElement);
     const sat = cs.getPropertyValue('--sat').trim(), sab = cs.getPropertyValue('--sab').trim();
-    const s = [dispH, appH, ih, focused ? 1 : 0, RESIZE_MODE ? 1 : 0, sat, sab].join('|');
+    const s = [dispH, appH, ih, focused ? 1 : 0, SHELL_VER, sat, sab].join('|');
     if (s === lastDiag) return;
     lastDiag = s;
     fetch('/client-kb-log', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ kb: dispH, native: RESIZE_MODE ? 1 : 0, vv: focused ? 1 : 0, ih, vvh: vv ? Math.round(vv.height) : 0, appH, sat, sab }) }).catch(() => {});
+      body: JSON.stringify({ kb: dispH, native: SHELL_VER, vv: focused ? 1 : 0, ih, vvh: vv ? Math.round(vv.height) : 0, appH, sat, sab }) }).catch(() => {});
   } catch (e) {}
+}
+/* 可见高度：两台真机的键盘行为正好相反（一台 innerHeight 缩、visualViewport
+   不动；另一台反之），取更小的那个对两边同时成立，不分机型、不靠报数。 */
+function visibleH(){
+  const vv = window.visualViewport;
+  return Math.round(Math.min(window.innerHeight, vv ? vv.height : window.innerHeight));
 }
 function syncDispH(){
   const tag = document.activeElement && document.activeElement.tagName;
   const focused = tag === 'INPUT' || tag === 'TEXTAREA';
-  let next = dispH;
-  if (RESIZE_MODE){
-    if (window.innerHeight >= appH - 10){ if (!focused) appH = window.innerHeight; next = appH; }
-    else if (focused && window.innerHeight < appH - 80) next = window.innerHeight;
-    else if (!focused) next = appH;
-  } else {
-    if (!focused && window.innerHeight > appH - 10) appH = window.innerHeight;
-    next = appH;
+  const vis = visibleH();
+  if (!focused && vis > appH - 10) appH = vis;
+  /* 收缩量取两路之大（见顶部说明）：哪台手机哪路有效都落到同一个位置。 */
+  let next = appH;
+  if (focused){
+    const kbv = kbCssVal();
+    const shrink = Math.max(appH - vis, kbv > 80 ? kbv : 0);
+    if (shrink > 80) next = appH - shrink;
   }
   if (next !== dispH){
     const flow = document.getElementById('msgFlow');
@@ -1611,103 +1613,51 @@ function syncDispH(){
     lockAppH();
     if (nearBottom && flow) requestAnimationFrame(() => { flow.scrollTop = flow.scrollHeight; });
   }
-  document.body.classList.toggle('kb-open', !!(focused && (window.innerHeight < appH - 80 || (window.__kbV || 0) > 0)));
+  document.body.classList.toggle('kb-open', !!(focused && next < appH - 80));
   diagKb(focused);
 }
 window.addEventListener('resize', syncDispH);
+if (window.visualViewport) window.visualViewport.addEventListener('resize', syncDispH);
 document.addEventListener('focusin', () => setTimeout(syncDispH, 60));
 document.addEventListener('focusout', () => setTimeout(syncDispH, 60));
-/* v2.6 键盘（覆盖式不变：内容不动，只抬输入栏）：
-   两路测量持续取大、互不锁死——
-   (1) 原生侧 __gzSetKb（壳子三路取大后的值）；
-   (2) visualViewport / innerHeight 推导值。
-   v2.5 的断点：kbNativeSeen 一旦置位就永久关掉备用路，且 130ms 稳定
-   等待在动画抖动时会一直重置；vivo 上原生侧又一次都没报上数
-   （服务器 .kb_log 里 v15/v16 零条记录），输入栏就一直躺在键盘后面。
-   现在改为立即落位，平滑交给 CSS 的 0.16s 过渡。 */
-let kbNative = 0, kbVV = 0;
-let lastKbLogged = -1, lastNativeLogged = -1, lastVvLogged = -1;
-function applyKb(){
-  /* 2026-11-18 21:07 批：不再无条件信任壳子的缩放。
-     旧逻辑：新壳一律 --kb=0，只靠壳子把 WebView 压到键盘上方；但她手机上
-     壳子的 bottomMargin 这次没生效（键盘弹起、窗口没缩），输入栏就直接被
-     键盘盖没了。现在两路并用、只补差额：
-       抬升量 = 键盘高度 − 窗口已经被压下去的高度
-     窗口真缩了（差额≈0）就一点不多抬，窗口没缩就由网页把输入栏抬满，
-     哪一路生效都落到同一个位置，不会双重抬升、也不会躺在键盘后面。 */
-  const chatOn = document.getElementById('page-chat') && document.getElementById('page-chat').classList.contains('on');
-  const tag0 = document.activeElement && document.activeElement.tagName;
-  const focused0 = tag0 === 'INPUT' || tag0 === 'TEXTAREA';
-  if (V32_MODE){
-    /* 新壳：窗口被系统压到键盘上沿，输入栏天然贴键盘，不做任何抬升 */
-    document.documentElement.style.setProperty('--kb', '0px');
-    window.__kbV = 0;
-    document.body.classList.toggle('kb-open', !!(focused0 && (appH - window.innerHeight) > 80));
+/* 壳子报数入口。壳子报的是未缩放的 CSS px（按屏幕密度换算），而页面根元素
+   带字号 zoom，文档里的 px 会被 zoom 放大——所以 insets 落进 --sat/--sab 前
+   要除以当前 zoom，换算只此一处：原值存下来，zoom 变化时按新值重算。
+   自己加边距的两代壳（21/23）按 0 用，见 SHELL_SELF_MARGINS。 */
+let rawInsets = null;
+function applyInsets(){
+  if (!rawInsets) return;
+  if (SHELL_SELF_MARGINS){
+    document.documentElement.style.setProperty('--sat', '0px');
+    document.documentElement.style.setProperty('--sab', '0px');
     return;
   }
-  const eff = Math.max(kbNative, kbVV);
-  const shrunk = Math.max(0, appH - window.innerHeight);
-  const residual = shrunk > 80 ? Math.max(0, eff - shrunk) : eff;
-  const v = (eff > 80 && chatOn && focused0) ? Math.round(residual) : 0;
-  document.documentElement.style.setProperty('--kb', v + 'px');
-  /* 落点修正（2026-11-18 晚，.kb_log 实证）：壳 v3.1 下键盘高度能报上来了
-     （native=307），但输入栏还是浮在键盘上方约一截——那截正好是手势栏高
-     度 sab：输入栏平时的底边距里含 sab（10px + sab），键盘弹起后手势栏
-     区域已被键盘盖住，这截边距必须撤掉，栏才正好落在键盘上沿。kb-open
-     时 CSS 把 chat-bar 底边距收回 10px，抬升量仍按键盘全高算，两边对齐。 */
-  window.__kbV = v;
-  document.body.classList.toggle('kb-open', !!(focused0 && (v > 0 || (appH - window.innerHeight) > 80)));
-  if (v !== lastKbLogged || kbNative !== lastNativeLogged || kbVV !== lastVvLogged){
-    lastKbLogged = v; lastNativeLogged = kbNative; lastVvLogged = kbVV;
-    try {
-      navigator.sendBeacon('/client-kb-log', new Blob([JSON.stringify({
-        kb: v, native: kbNative, vv: kbVV, ih: window.innerHeight,
-        vvh: window.visualViewport ? Math.round(window.visualViewport.height) : -1,
-        appH: appH })], { type: 'application/json' }));
-    } catch (e) {}
-  }
-  // 键盘确实收起（两路都为 0）且没有输入框聚焦时，把应用高度按当前
-  // 窗口重新对齐一次，防止启动瞬间量错高度让落点整体偏高。
-  const tag = document.activeElement && document.activeElement.tagName;
-  if (v === 0 && kbNative === 0 && kbVV === 0 && window.innerHeight > 0 && tag !== 'INPUT' && tag !== 'TEXTAREA'){
-    appH = window.innerHeight; dispH = appH; lockAppH();
-  }
-}
-function gzSetKb(px){
-  if (V32_MODE) return;
-  // 壳子报的是未缩放单位；页面 zoom 后 CSS px 变大，键盘高度要除以缩放比才落得准
-  kbNative = Math.round((px || 0) * 100 / fontScaleVal());
-  applyKb();
-}
-window.__gzSetKb = gzSetKb;
-window.__gzSetInsets = function(topCss, botCss){
-  if (V32_MODE) return;
   const z = fontScaleVal() / 100;
-  document.documentElement.style.setProperty('--sat', Math.round((topCss || 0) / z) + 'px');
-  document.documentElement.style.setProperty('--sab', Math.round((botCss || 0) / z) + 'px');
-};
-if (window.visualViewport){
-  const vv = window.visualViewport;
-  // 抬升量只认键盘高度本身，绝不掺滚动偏移——否则滑动聊天时输入栏会跟着动。
-  const onVV = () => {
-    kbVV = Math.round(Math.max(0, appH - vv.height, appH - window.innerHeight));
-    applyKb();
-  };
-  vv.addEventListener('resize', onVV);
-  vv.addEventListener('scroll', onVV);
+  document.documentElement.style.setProperty('--sat', Math.round(rawInsets[0] / z) + 'px');
+  document.documentElement.style.setProperty('--sab', Math.round(rawInsets[1] / z) + 'px');
 }
-// 点开输入框时主动让壳子重报一次当前键盘高度（动画结束后各补一次），
-// 不被动等壳子的布局回调——vivo 上那个回调可能根本不来。
-(function(){
-  const ci = document.getElementById('chatInput');
-  if (!ci) return;
-  ci.addEventListener('focus', () => {
-    const ping = () => { try { if (window.GzBridge && GzBridge.pingKb) GzBridge.pingKb(); } catch (e) {} };
-    ping();
-    setTimeout(ping, 350);
-    setTimeout(ping, 800);
-  });
-})();
+window.__gzSetInsets = function(topCss, botCss){
+  rawInsets = [topCss || 0, botCss || 0];
+  applyInsets();
+};
+/* 壳子报的键盘高度：有些手机（如本机）键盘弹起时 innerHeight 与
+   visualViewport 都不动，唯一在动的就是这个原生数值，所以它要参与高度
+   计算（syncDispH 的取大公式）；换算与 insets 同一处规矩（除以字号 zoom）。 */
+let rawShellKb = 0, lastNativeLogged = -1;
+function kbCssVal(){ return Math.round(rawShellKb / (fontScaleVal() / 100)); }
+window.__gzSetKb = function(px){
+  rawShellKb = px || 0;
+  try { syncDispH(); } catch (e) {}
+  const v = rawShellKb;
+  if (v === lastNativeLogged) return;
+  lastNativeLogged = v;
+  try {
+    navigator.sendBeacon('/client-kb-log', new Blob([JSON.stringify({
+      kb: 0, native: v, vv: 0, ih: window.innerHeight,
+      vvh: window.visualViewport ? Math.round(window.visualViewport.height) : -1,
+      appH: appH })], { type: 'application/json' }));
+  } catch (e) {}
+};
 
 /* 切账号时把上一个账号留在内存/画面里的东西全部清掉：背景图、采样色、
    聊天/成员/消息缓存都不许带到下一个账号的界面里（隐私隔离，2026-11-18）。 */
