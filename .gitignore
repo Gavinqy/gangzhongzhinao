@@ -1,0 +1,13 @@
+# 密钥与本地状态：永远不要提交这些文件
+.secret
+.gpt_probe
+.dorian_token
+*.db
+*.db-journal
+uploads/
+.venv/
+__pycache__/
+*.log
+*.bak
+presence_inbox.jsonl
+security/blocked_ips.caddy
