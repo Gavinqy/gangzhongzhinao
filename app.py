@@ -400,6 +400,10 @@ def init_db():
           mime TEXT,
           file_size INTEGER,
           created_at TEXT NOT NULL)""")
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS app_settings(
+          key TEXT PRIMARY KEY,
+          value TEXT)""")
         # 统一评论表迁移：瓶子回复原样搬入（保留 id），旧表留作回滚不再写入
         conn.execute(
             "INSERT OR IGNORE INTO moment_comments"
@@ -1387,6 +1391,37 @@ def auth_admin(req: Request) -> sqlite3.Row:
     return user
 
 
+def _setting_get(conn, key, default=None):
+    r = conn.execute("SELECT value FROM app_settings WHERE key=?", (key,)).fetchone()
+    return r["value"] if r else default
+
+
+def _admin_moment_delete_on(conn) -> bool:
+    # 管理员删帖总开关（缺省开）：关掉后管理员不能删他人动态/漂流瓶，
+    # 作者组自删不受影响。
+    return _setting_get(conn, "admin_moment_delete", "1") != "0"
+
+
+@app.get("/admin/settings")
+def admin_settings(req: Request):
+    auth_admin(req)
+    with db() as conn:
+        return {"admin_moment_delete": _admin_moment_delete_on(conn)}
+
+
+@app.put("/admin/settings/admin-moment-delete")
+async def admin_set_moment_delete(req: Request):
+    auth_admin(req)
+    body = await req.json()
+    enabled = bool(body.get("enabled"))
+    with db() as conn:
+        conn.execute(
+            "INSERT INTO app_settings(key, value) VALUES('admin_moment_delete', ?) "
+            "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            ("1" if enabled else "0",))
+    return {"ok": True, "admin_moment_delete": enabled}
+
+
 @app.get("/admin/applications")
 def admin_applications(req: Request):
     auth_admin(req)
@@ -1763,7 +1798,9 @@ def get_me(req: Request):
     user = auth_user(req)
     with db() as conn:
         row = conn.execute("SELECT * FROM users WHERE id=?", (user["id"],)).fetchone()
-        return _profile_dict(row)
+        out = _profile_dict(row)
+        out["admin_moment_delete"] = _admin_moment_delete_on(conn)
+        return out
 
 
 @app.patch("/me")
@@ -1781,7 +1818,9 @@ async def patch_me(req: Request):
             conn.execute("UPDATE users SET bio=? WHERE id=?",
                          (str(body["bio"])[:300], user["id"]))
         row = conn.execute("SELECT * FROM users WHERE id=?", (user["id"],)).fetchone()
-        return _profile_dict(row)
+        out = _profile_dict(row)
+        out["admin_moment_delete"] = _admin_moment_delete_on(conn)
+        return out
 
 
 @app.post("/me/avatar")
@@ -3537,7 +3576,10 @@ def delete_moment(moment_id: int, req: Request):
         if not r:
             raise HTTPException(404, "动态不存在")
         if not _moment_mine(r, viewer_user_id=user["id"]):
-            raise HTTPException(403, "只能删自己的")
+            if not user["is_admin"]:
+                raise HTTPException(403, "只能删自己的")
+            if not _admin_moment_delete_on(conn):
+                raise HTTPException(403, "管理员删帖已关闭")
         imgs = conn.execute("SELECT file_path, preview_path FROM moment_images "
                             "WHERE moment_id=?", (moment_id,)).fetchall()
         conn.execute("DELETE FROM moment_comments WHERE moment_id=?", (moment_id,))

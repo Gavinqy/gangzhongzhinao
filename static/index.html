@@ -1062,6 +1062,7 @@ body.glass-on .pf-hero{ background:var(--glass-bg,rgba(255,255,255,.38)); border
     <div class="card" style="margin-bottom:12px"><div class="me-row" id="setAdmin" style="cursor:pointer">申请管理<span class="chev" style="margin-left:auto">›</span></div></div>
     <div class="card" style="margin-bottom:12px"><div class="me-row" id="setFbAdmin" style="cursor:pointer">查看反馈<span class="chev" style="margin-left:auto">›</span></div></div>
     <div class="card" style="margin-bottom:12px"><div class="me-row" id="setAnnounce" style="cursor:pointer">发布公告<span class="chev" style="margin-left:auto">›</span></div></div>
+    <div class="card" style="margin-bottom:12px"><div class="me-row"><span style="flex:1">管理员删帖</span><span id="admMomDelSw"><span class="switch"></span></span></div></div>
   </section>
 
   <section class="page" id="page-feedback">
@@ -2343,6 +2344,8 @@ async function refreshMe(){
   if (p.global_bg_blur != null) globalBg.blur = p.global_bg_blur;
   if (p.global_bg_liquid != null) globalBg.liquid = p.global_bg_liquid;
   window.IS_ADMIN = !!p.is_admin;
+  window.ADMIN_MOM_DEL = p.admin_moment_delete !== false;
+  syncAdmMomDelSwitch();
   const spTab = $('#tabSpace'); if (spTab) spTab.classList.toggle('hidden', !p.is_admin);
   const ctTab = $('#tabContacts'); if (ctTab) ctTab.classList.toggle('hidden', !!p.is_admin);
   const mgc = $('#setManageCard'); if (mgc) mgc.classList.toggle('hidden', !p.is_admin);
@@ -4214,7 +4217,28 @@ document.addEventListener('click', e => {
 $('#setAdmin').addEventListener('click', () => { renderAdmin(); showPage('page-admin'); });
 $('#adminBack').addEventListener('click', () => showPage('page-manage'));
 $('#manageBack').addEventListener('click', () => showPage('page-settings'));
-$('#setManage').addEventListener('click', () => showPage('page-manage'));
+$('#setManage').addEventListener('click', () => { showPage('page-manage'); loadAdminSettings(); });
+function syncAdmMomDelSwitch(){
+  const sw = $('#admMomDelSw .switch');
+  if (sw) sw.classList.toggle('on', window.ADMIN_MOM_DEL !== false);
+}
+async function loadAdminSettings(){
+  if (!window.IS_ADMIN) return;
+  try {
+    const r = await api('/admin/settings');
+    window.ADMIN_MOM_DEL = r.admin_moment_delete !== false;
+    syncAdmMomDelSwitch();
+  } catch (e){}
+}
+$('#admMomDelSw').addEventListener('click', async () => {
+  const next = !(window.ADMIN_MOM_DEL !== false);
+  try {
+    const r = await api('/admin/settings/admin-moment-delete', { method: 'PUT', body: { enabled: next } });
+    window.ADMIN_MOM_DEL = r.admin_moment_delete !== false;
+    syncAdmMomDelSwitch();
+    renderMoments();
+  } catch (e){ toast(e.message); syncAdmMomDelSwitch(); }
+});
 
 /* ---------- 反馈：提交（所有人）/ 查看与回复（管理员） ---------- */
 const fontScaleEl = $('#fontScale');
@@ -5430,7 +5454,7 @@ function momPostCardHTML(m, i){
     '<div class="mom-text">' + esc(m.content) + '</div>' + momImagesHTML(m.images, true) +
     '<div class="mom-acts"><span class="mom-like' + (m.liked ? ' on' : '') + '" data-mom-like="' + m.id + '">' + MOM_HEART + '<span data-like-count="' + m.id + '">' + (m.like_count || 0) + '</span></span>' +
     (momV34() ? '<span class="mom-cmt" data-mom-comments="' + m.id + '">评论 ' + (m.reply_count || 0) + '</span>' : '') +
-    (m.mine ? '<span class="mom-del" data-mom-del="' + m.id + '">删除</span>' : '') +
+    (m.mine ? '<span class="mom-del" data-mom-del="' + m.id + '">删除</span>' : (momAdminCanDel(m) ? '<span class="mom-del" data-mom-admindel="' + m.id + '">删除</span>' : '')) +
     '</div></div></div></div>';
 }
 function momBottleCardHTML(m, i){
@@ -5459,6 +5483,7 @@ function renderMoments(){
   box.innerHTML = momentsCache.map((m, i) => m.kind === 'bottle' ? momBottleCardHTML(m, i) : momPostCardHTML(m, i)).join('');
   $$('[data-mom-like]', box).forEach(el => el.addEventListener('click', () => toggleMomentLike(Number(el.dataset.momLike))));
   $$('[data-mom-del]', box).forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); deleteMoment(Number(el.dataset.momDel)); }));
+  $$('[data-mom-admindel]', box).forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); deleteMomentAdmin(Number(el.dataset.momAdmindel), 'post'); }));
   $$('[data-mom-drift]', box).forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); driftBottle(Number(el.dataset.momDrift)); }));
   $$('[data-mom-open]', box).forEach(el => el.addEventListener('click', () => openBottle(Number(el.dataset.momOpen))));
   $$('[data-mom-comments]', box).forEach(el => el.addEventListener('click', () => openMoment(Number(el.dataset.momComments))));
@@ -5472,6 +5497,11 @@ async function toggleMomentLike(id){
     const el = document.querySelector('[data-mom-like="' + id + '"]');
     if (el){ el.classList.toggle('on', r.liked); const c = el.querySelector('[data-like-count]'); if (c) c.textContent = r.like_count; }
   } catch (e){ toast(e.message); }
+}
+function momAdminCanDel(m){ return !!window.IS_ADMIN && window.ADMIN_MOM_DEL !== false && !m.mine; }
+function deleteMomentAdmin(id, kind){
+  if (!confirm(kind === 'bottle' ? '删除这个漂流瓶？' : '删除这条动态？')) return;
+  deleteMoment(id);
 }
 async function deleteMoment(id){
   try {
@@ -5617,9 +5647,11 @@ function renderBottleDetail(r){
     '<div class="mom-p-author">' + head + '<span class="mom-p-time">' + esc(fmtListTime(b.created_at)) + '</span>' + momVisTag(b) +
     '<span class="mom-p-no">' + String(b.id).padStart(3, '0') + '</span></div>' +
     '<div class="mom-p-text">' + esc(b.content) + '</div>' + momImagesHTML(b.images) +
-    (b.mine ? '<div class="mom-p-del"><button id="bottleDel">删除</button></div>' : '');
+    (b.mine ? '<div class="mom-p-del"><button id="bottleDel">删除</button></div>' : (momAdminCanDel(b) ? '<div class="mom-p-del"><button id="bottleAdminDel">删除</button></div>' : ''));
   const bd = $('#bottleDel');
   if (bd) bd.addEventListener('click', () => deleteMoment(b.id));
+  const bad = $('#bottleAdminDel');
+  if (bad) bad.addEventListener('click', () => deleteMomentAdmin(b.id, 'bottle'));
   bindMomImgs($('#bottlePaper'));
   $('#bottleReplyCount').textContent = '共 ' + r.replies.length + ' 条';
   $('#bottleReplies').innerHTML = r.replies.map((x, i) => momReplyHTML(x, i)).join('');
@@ -5688,7 +5720,7 @@ function renderMomentDetail(r){
     '<span class="mom-p-no">' + String(m.id).padStart(3, '0') + '</span></div>' +
     '<div class="mom-p-text">' + esc(m.content) + '</div>' + momImagesHTML(m.images) +
     '<div class="mom-acts"><span class="mom-like' + (m.liked ? ' on' : '') + '" id="momentLike">' + MOM_HEART + '<span id="momentLikeCount">' + (m.like_count || 0) + '</span></span></div>' +
-    (m.mine ? '<div class="mom-p-del"><button id="momentDel">删除</button></div>' : '');
+    (m.mine ? '<div class="mom-p-del"><button id="momentDel">删除</button></div>' : (momAdminCanDel(m) ? '<div class="mom-p-del"><button id="momentAdminDel">删除</button></div>' : ''));
   bindMomImgs($('#momentPaper'));
   const lk = $('#momentLike');
   if (lk) lk.addEventListener('click', async () => {
@@ -5703,6 +5735,8 @@ function renderMomentDetail(r){
   });
   const md = $('#momentDel');
   if (md) md.addEventListener('click', () => deleteMoment(m.id));
+  const mad = $('#momentAdminDel');
+  if (mad) mad.addEventListener('click', () => deleteMomentAdmin(m.id, 'post'));
   $('#momentCommentCount').textContent = '共 ' + r.comments.length + ' 条';
   $('#momentComments').innerHTML = r.comments.map((x, i) => momReplyHTML(x, i)).join('');
   $$('[data-reply-del]', $('#momentComments')).forEach(el => el.addEventListener('click', () => deleteMomentComment(Number(el.dataset.replyDel))));
