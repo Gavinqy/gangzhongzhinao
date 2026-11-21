@@ -893,7 +893,7 @@ body.glass-on .pf-hero{ background:var(--glass-bg,rgba(255,255,255,.38)); border
       <div class="row"><span style="flex:1">匿名</span><span id="mnAnonSw"><span class="switch"></span></span></div>
     </div>
     <div class="mom-mode-row hidden" id="mnVisRow" style="margin-top:12px;margin-bottom:0">
-      <button class="mom-mode on" data-mn-vis="public">公开</button><button class="mom-mode" data-mn-vis="private">仅自己与我的AI</button><button class="mom-mode" data-mn-vis="circle">仅我的群聊</button>
+      <button class="mom-mode on" data-mn-vis="public">公开</button><button class="mom-mode" data-mn-vis="private">仅成员可见</button><button class="mom-mode" data-mn-vis="circle">仅朋友可见</button>
     </div>
     <div class="mn-thumbs" id="mnThumbs"></div>
     <button class="mom-c-btn post" id="mnPick" style="display:block;width:100%;margin-top:12px">选图</button>
@@ -5403,7 +5403,7 @@ function momImagesHTML(images, fold){
 }
 function momVisTag(m){
   if (!m || !m.visibility || m.visibility === 'public') return '';
-  return '<span class="mom-vis">' + (m.visibility === 'private' ? '仅自己与我的AI' : '仅我的群聊') + '</span>';
+  return '<span class="mom-vis">' + (m.visibility === 'private' ? '仅成员可见' : '仅朋友可见') + '</span>';
 }
 function bindMomImgs(scope){
   $$('img[data-mom-img]', scope).forEach(img => img.addEventListener('click', ev => {
